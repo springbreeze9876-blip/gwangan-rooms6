@@ -26,6 +26,7 @@
   .pop .ph{display:block;margin-top:8px;background:#1d4ed8;color:#fff;text-align:center;padding:8px;border-radius:8px}
   @media (max-width:520px){.pop{left:0;transform:translate(-50%,22px)}}
   .pop{pointer-events:auto}
+  .pop .lk{margin-top:4px;border:1px solid #999;background:#f5f5f5;border-radius:6px;padding:4px 10px;font-size:13px;cursor:pointer}
   .pop .ph.nv{background:#03c75a;color:#fff}
   .pop .ph.no{background:#ccc;pointer-events:none}
 </style>
@@ -36,6 +37,18 @@
 <script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=13ed94de05d6fc0b34c2e1e2e3311ffa&autoload=false"></script>
 <script>
 const L=[{"t": "서준빌 504호", "a": "광안동 100-4", "p": "300/36", "lat": 35.1634736106752, "lng": 129.116301002598}, {"t": "부성팰리스 503호", "a": "광안동 96-12", "p": "300/35", "lat": 35.1637868354713, "lng": 129.116255458736}, {"t": "풀하우스 503호", "a": "광안동 97-16", "p": "400/40", "lat": 35.1649026490839, "lng": 129.116084762103}, {"t": "유성빌 401호", "a": "수영동 449-2", "p": "200/37", "lat": 35.169142258412, "lng": 129.113981648898}, {"t": "조은집 503호", "a": "광안동 120-100", "p": "1000/30 또는 500/33", "lat": 35.1598316967248, "lng": 129.114578210165}, {"t": "대성레미안 305호", "a": "광안동 100-3", "p": "500/45", "lat": 35.1632366637662, "lng": 129.116266879239}];
+const SEC={"s": "v/3iczazviCwbfc99s+bYA==", "i": "AG3beRwpX8CG3rWQ", "c": "i96WN8HLpsNGPhCa+6A9EOjP6S2fO1JxcRYF39+jrz+KYJFxMXfOz4lAGFRId+j4lyXNJWq3sRgHV1AgoWva/nltdYMaY2Acroset+vc9F3z3MH63ieefRrKv4FuVN6c3QpHPpltarmbiKBPdphuyfW0Dm2yeo9AlBtl8H6sk8zNUZXkil/rdwPoF8j9QiCIIm9g8NYB"};
+let PW=null; const u8=a=>Uint8Array.from(atob(a),c=>c.charCodeAt(0));
+async function unlock(p){const k0=await crypto.subtle.importKey('raw',new TextEncoder().encode(p),'PBKDF2',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:u8(SEC.s),iterations:300000,hash:'SHA-256'},k0,{name:'AES-GCM',length:256},false,['decrypt']);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:u8(SEC.i)},k,u8(SEC.c))));}
+async function getPW(ask){ if(PW) return PW; let p=localStorage.getItem('rooms6pw');
+  if(!p&&ask) p=prompt('비번 보기 암호'); if(!p) return null;
+  try{PW=await unlock(p.trim()); localStorage.setItem('rooms6pw',p.trim()); return PW;}catch(e){localStorage.removeItem('rooms6pw'); if(ask) alert('암호가 틀려요'); return null;}}
+function secBox(i,box){const show=P=>{box.innerHTML='<div>공동현관: <b>'+esc(P[i][0])+'</b></div><div>호실비번: <b>'+esc(P[i][1])+'</b></div>';};
+  getPW(false).then(P=>{ if(P) return show(P);
+    box.innerHTML='<button class="lk">🔒 비번 보기</button>';
+    box.querySelector('.lk').onclick=ev=>{ev.stopPropagation(); getPW(true).then(P=>P&&show(P));}; });}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const naver=a=>'https://map.naver.com/p/search/'+encodeURIComponent('부산 수영구 '+a);
 
@@ -59,7 +72,9 @@ kakao.maps.load(()=>{
         '<div class="t">'+(i+1)+'. '+esc(x.t)+'</div>'+
         '<div>'+esc(x.a)+'</div>'+
         '<div class="p">'+esc(x.p)+'</div>'+
+        '<div class="sec"></div>'+
         '<a class="ph nv" href="'+naver(x.a)+'" target="_blank" rel="noopener">네이버지도 열기</a>';
+      secBox(i,w.querySelector('.sec'));
       w.querySelector('.x').onclick=ev=>{ev.stopPropagation(); close();};
       ['mousedown','touchstart','click'].forEach(t=>w.addEventListener(t,ev=>ev.stopPropagation()));
       pop.setContent(w); pop.setPosition(pos); pop.setMap(map);
